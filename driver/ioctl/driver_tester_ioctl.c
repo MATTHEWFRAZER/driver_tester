@@ -4,11 +4,6 @@
 
 #include "../detour_patching/driver_tester_detour_patching.h"
 
-#define DT_IOC_MAGIC 'd'
-#define DT_IOC_MAXNR 1
-
-#define DT_PATCH _IOW(DT_IOC_MAGIC, 1, char*)
-
 long int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument)
 {
     if(_IOC_TYPE(ioctl) != DT_IOC_MAGIC)

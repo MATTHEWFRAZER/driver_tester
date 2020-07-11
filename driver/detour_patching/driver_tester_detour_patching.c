@@ -4,6 +4,7 @@
 #include <linux/kallsyms.h>
 #include <linux/slab.h>
 
+#include "../../common/driver_tester_patch_request.h"
 #include "driver_tester_detour_patching.h"
 
 typedef struct DT_PATCH

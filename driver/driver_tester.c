@@ -4,7 +4,7 @@
 #include <linux/cdev.h>
 #include <linux/fs.h>
 
-#include "ioctl/driver_tester_ioctl.h"
+#include "../common/driver_tester_ioctl.h"
 #include "detour_patching/driver_tester_detour_patching.h"
 
 MODULE_DESCRIPTION("driver used to test other drivers");
