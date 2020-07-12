@@ -16,5 +16,6 @@ typedef struct _DT_PATCH_REQUEST
     char *targetDriverName;
     unsigned long userlandRoutineAddress;
     ARGUMENT_OFFSETS *argmentOffsets;
+    int argmentOffsetSize;
     int bytesRequired;
 } DT_PATCH_REQUEST;
