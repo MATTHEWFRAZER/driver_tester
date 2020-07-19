@@ -13,7 +13,10 @@ typedef struct DT_PATCH
      char *patch;
      char *replacedCode;
      unsigned int targetDriverRoutineAddress;
-     int size;
+     int patchSize;
+     int *displacedOperands;
+     int displacedOperandsSize;
+     int originalRoutineRestorePoint;
 };
 
 static struct DT_PATCH *gDTPatches;
@@ -66,6 +69,33 @@ static inline int is_driver_loaded(char *path, char *targetDriver)
 
 #define TRAMPOLINE_SIZE 6
 
+__declspec(naked) dt_detour_patching_prolog_detour()
+{
+    int i;
+    stuct DT_PATCH *patch;
+    // jump to patch
+    __asm
+    {
+        CALL patch->userlandRoutineAddress;
+    }
+
+    // supplanted code that needs to get pushed onto the stack
+    for(i = 0; i < patchRequest->displacedOperandsSize; ++i)
+    {
+        __asm
+        {
+            PUSH patch->displacedOperands[i];
+        }
+    }
+
+    // jump to original code
+    __asm
+    {
+         PUSH [patch->originalRoutineRestorePoint]
+         RET
+    }
+}
+
 static int dt_detour_patching_apply_patch(unsigned long targetDriverRoutineAddress,
                                           DT_PATCH_REQUEST *patchRequest)
 {
@@ -75,10 +105,12 @@ static int dt_detour_patching_apply_patch(unsigned long targetDriverRoutineAddre
     char *targetDriverRoutineAddressAsBytes = (char *)targetDriverRoutineAddress;
     char *userlandRoutineAddressAsBytes = (char *)patchRequest->userlandRoutineAddress;
     dt_detour_patching_append_patch(&patch);
-    patch->size = patchRequest->bytesRequired;
+    patch->patchSize = patchRequest->bytesRequired;
+    patch->displacedOperands = patchRequest->displacedOperands;
+    patch->displacedOperandsSize = patchRequest->displacedOperandsSize;
     patch->targetDriverRoutineAddress = targetDriverRoutineAddress;
 
-    for(i = 0; i < patch->size; ++i)
+    for(i = 0; i < patch->patchSize; ++i)
     {
         // save the original code so we can unapply the patch
         patch->replacedCode[i] = targetDriverRoutineAddressAsBytes[i];
@@ -104,7 +136,7 @@ static int dt_detour_patching_unapply_patch(struct DT_PATCH *patch)
 {
     int i;
     char * addressAsBytes = (char *)patch->targetDriverRoutineAddress;
-    for(i = 0; i < patch->size; ++i)
+    for(i = 0; i < patch->patchSize; ++i)
     {
         addressAsBytes[i] = patch->replacedCode[i];
     }

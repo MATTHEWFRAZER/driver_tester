@@ -16,7 +16,7 @@ long int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned 
         return -ENOTTY;
     }
 
-    if (_IOC_NR(ioctl) == DT_PATCH && _IOC_DIR(ioctl) & _IOC_WRITE)
+    if (_IOC_NR(ioctl) == DT_PATCH_IOCTL && _IOC_DIR(ioctl) & _IOC_WRITE)
     {
         //void __user *userPointer = (void __user *)argument;
         //int size = _IOC_SIZE(ioctl);

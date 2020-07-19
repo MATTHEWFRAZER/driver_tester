@@ -3,6 +3,6 @@
 #define DT_IOC_MAGIC 'd'
 #define DT_IOC_MAXNR 1
 
-#define DT_PATCH _IOW(DT_IOC_MAGIC, 1, char*)
+#define DT_PATCH_IOCTL _IOW(DT_IOC_MAGIC, 1, char*)
 
 long int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument);
