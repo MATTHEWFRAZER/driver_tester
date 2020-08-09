@@ -14,17 +14,13 @@ ssize_t userland_proc_file_read(struct file *file, char __user *ubuf,
 {
 }
 
-ARGUMENT_OFFSETS *malloc_argument_offsets()
+void free_argument_offsets(ARGUMENT_OFFSETS *argumentOffsets)
 {
-    int i;
-    ARGUMENT_OFFSETS* argumentOffsets = (ARGUMENT_OFFSETS*)malloc(sizeof(ARGUMENT_OFFSETS) * ARGUMENT_OFFSETS)
-    for(i = 0; i < ARGUMENT_OFFSETS_SIZE; ++i )
+    if (argmentOffsetSize != NULL)
     {
-        // wondering if we have to worry about padding
-        argmentOffsets[i].
+       free(argmentOffsets);
     }
 }
-
 
 int main(int argc, char* argv[])
 {
@@ -40,6 +36,7 @@ int main(int argc, char* argv[])
     patchRequest.targetDriverName = gtargetDriverName;
     patchRequest.targetRoutineName = gtargetRoutineName;
     patchRequest.userlandRoutineAddress = (unsigned long)userland_proc_file_read;
+    patchRequest.useDisplacedOperands = 0;
     if (ioctl(fd, DT_PATCH, &patchRequest) < 0)
     {
         printf("failed send patch ioctl");

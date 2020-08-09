@@ -11,4 +11,5 @@ typedef struct _DT_PATCH_REQUEST
     int *displacedOperands;
     int displacedOperandsSize;
     int bytesRequired;
+    int useDisplacedOperands;
 } DT_PATCH_REQUEST;
