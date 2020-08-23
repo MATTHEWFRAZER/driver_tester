@@ -5,7 +5,11 @@
 #include <linux/slab.h>
 
 #include "../../common/driver_tester_patch_request.h"
+#include "../../common/common.h"
 #include "driver_tester_detour_patching.h"
+#include "cdecl_patch.h"
+
+typdef void (*EPILOG)(DT_PARAMETER *parameters, int size);
 
 typedef struct DT_PATCH
 {
@@ -24,17 +28,17 @@ typedef struct DT_PATCH
      // size of the code to replace target code
      int patchSize;
 
-     // list of operands
-     int *displacedOperands;
-
-     // size of displaced operands
-     int displacedOperandsSize;
-
      // where we want to restore control to
      int originalRoutineRestorePoint;
 
-     // whether or not we care about the operands (if we fully circumvent the call, we dont)
-     int useDisplacedOperands;
+     // parameters to patched function
+     DT_PARAMETER *parameters;
+
+     // number of parameters
+     int parametersSize;
+
+     // simulated epilog of patched function
+     EPILOG epilog;
 };
 
 static struct DT_PATCH *gDTPatches;
@@ -125,32 +129,27 @@ static inline int is_driver_loaded(char *path, char *targetDriver)
 
 #define TRAMPOLINE_SIZE 6
 
-__declspec(naked) dt_detour_patching_prolog_detour()
+__declspec(naked) void dt_detour_patching_prolog_detour()
 {
     int i;
     stuct DT_PATCH *patch;
 
     // jump to patch
-    __asm
-    {
-        CALL patch->userlandRoutineAddress
-    }
-
-    // supplanted operands that needs to get pushed onto the stack
-    for(i = 0; patch->useDisplacedOperands && i < patchRequest->displacedOperandsSize; ++i)
-    {
-        __asm
-        {
-            PUSH patch->displacedOperands[i]
-        }
-    }
+    __asm__
+    (
+       "call %0"
+       : "r" (patch->userlandRoutineAddress)
+    );
 
     // jump to original code
-    __asm
-    {
-         PUSH patch->originalRoutineRestorePoint
-         RET
-    }
+    __asm__
+    (
+         "push %0\n\t"
+         "ret"
+         : "r" (patch->originalRoutineRestorePoint)
+    );
+
+    return;
 }
 
 static inline int is_valid_patch_request(struct DT_PATCH *patch, DT_PATCH_REQUEST *patchRequest)
@@ -167,13 +166,18 @@ static inline int is_valid_patch_request(struct DT_PATCH *patch, DT_PATCH_REQUES
         return 0;
     }
 
-    if (patchRequest->displacedOperands == NULL)
-    {
-        printk(KERN_WARNING "%s(): displacedOperands is null", __FUNCTION__);
-        return 0;
-    }
-
     return 1;
+}
+
+static EPILOG *dt_detour_get_epilog(DECL_SPEC declSpec)
+{
+    switch(declSpec)
+    {
+        case CDECL:
+            return &dt_cdecl_patch_epilog;
+        default:
+            return NULL;
+    }
 }
 
 static int dt_detour_patching_apply_patch(unsigned long targetDriverRoutineAddress,
@@ -182,21 +186,30 @@ static int dt_detour_patching_apply_patch(unsigned long targetDriverRoutineAddre
     int i;
     char trampolineBytes[TRAMPOLINE_SIZE] = {0x68, 0x00, 0x00, 0x00, 0x00, 0xC3};
     struct DT_PATCH *patch;
-    char *targetDriverRoutineAddressAsBytes = (char *)targetDriverRoutineAddress;
-    char *userlandRoutineAddressAsBytes = (char *)patchRequest->userlandRoutineAddress;
-    dt_detour_patching_append_patch(&patch);
+    char *targetDriverRoutineAddressAsBytes;
+    char *userlandRoutineAddressAsBytes;
+    EPILOG *epilog;
 
     if(!is_valid_patch_request(patch, patchRequest))
     {
         printk(KERN_WARNING "%s(): need to remove patch", __FUNCTION__);
-        dt_detour_patching_remove_patch(patch);
         return -ENOTTY;
     }
 
+    epilog = dt_detour_get_epilog(patchRequest->declSpec);
+    if (epilog == NULL)
+    {
+        // we need to remove the
+        return -ENOTTY;
+    }
+
+    targetDriverRoutineAddressAsBytes = ((char *)targetDriverRoutineAddress) + patchRequest->targetDriverRoutineOffset;
+    userlandRoutineAddressAsBytes = (char *)patchRequest->userlandRoutineAddress;
+    dt_detour_patching_append_patch(&patch);
+
     patch->patchSize = patchRequest->bytesRequired;
-    patch->displacedOperands = patchRequest->displacedOperands;
-    patch->displacedOperandsSize = patchRequest->displacedOperandsSize;
     patch->targetDriverRoutineAddress = targetDriverRoutineAddress;
+    patch->epilog = *epilog;
 
     for(i = 0; i < patch->patchSize; ++i)
     {
@@ -223,7 +236,14 @@ static int dt_detour_patching_apply_patch(unsigned long targetDriverRoutineAddre
 static int dt_detour_patching_unapply_patch(struct DT_PATCH *patch)
 {
     int i;
-    char * addressAsBytes = (char *)patch->targetDriverRoutineAddress;
+    char * addressAsBytes;
+
+    if (patch == NULL)
+    {
+        return -ENOTTY;
+    }
+
+    addressAsBytes = (char *)patch->targetDriverRoutineAddress;
     for(i = 0; i < patch->patchSize; ++i)
     {
         addressAsBytes[i] = patch->replacedCode[i];

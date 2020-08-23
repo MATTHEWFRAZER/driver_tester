@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
     patchRequest.bytesRequired = 6;
     patchRequest.targetDriverName = gtargetDriverName;
     patchRequest.targetRoutineName = gtargetRoutineName;
+    patchRequest.targetDriverRoutineOffset = 26;
     patchRequest.userlandRoutineAddress = (unsigned long)userland_proc_file_read;
     patchRequest.useDisplacedOperands = 0;
     if (ioctl(fd, DT_PATCH, &patchRequest) < 0)
