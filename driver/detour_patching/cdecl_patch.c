@@ -1,24 +1,25 @@
-__declspec(naked) void dt_detour_patching_prolog_load_stack(DT_PATCH_REQUEST)
-{
-    // use values passed into patch to construct stack
-    return;
-}
+#include <linux/slab.h>
+#include "../../common/common.h"
 
-__declspec(naked) void dt_cdecl_patch_epilog(DT_PARAMETER *parameters, int size)
+// take arguments off the stack, we want our patch code to not directly pull arguments off the stack
+__declspec(naked) void dt_cdecl_patch_prolog(void *context)
 {
     int i;
+    DT_PATCH *patch = (DT_PATCH*)context;
 
-    if (parameters == NULL)
+    if (arguments == NULL)
     {
         return;
     }
 
-    for(i = size - 1; i >= 0; --i)
+    for(i = patch->parameter_count; i >= 0; --i)
     {
+       patch->arguments[i].data = (void *)kmalloc(patch->parameter_sizes[i]);
+       patch->arguments[i].size = patch->parameters_sizes[i];
         __asm__
         (
            "movl -%1(%%rbp), %0"
-           : "=r" (parameters[i].data) : "r" (parameters[i].size)
+           : "=r" (arguments[i].data) : "r" (arguments[i].size)
         );
     }
     return;

@@ -4,4 +4,4 @@
 
 void dt_detour_patching_init(void);
 void dt_detour_patching_exit(void);
-int dt_detour_patching_patch(DT_PATCH_REQUEST *patchRequest);
+int dt_detour_patching_patch(DT_PATCH_REQUEST *patch_request);

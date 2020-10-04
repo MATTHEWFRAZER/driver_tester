@@ -9,44 +9,43 @@
 #include "driver_tester_detour_patching.h"
 #include "cdecl_patch.h"
 
-typdef void (*EPILOG)(DT_PARAMETER *parameters, int size);
+//typedef void (*DT_PROLOG)(DT_PATCH *patch);
 
-typedef struct DT_PATCH
+typedef struct _DT_PATCH
 {
      // next link in the linked list
-     struct DT_PATCH *next;
+     struct _DT_PATCH *next;
 
      // actual code to replace target code
      char *patch;
 
      // replaced code is stored here
-     char *replacedCode;
+     char *replaced_code;
 
      // address of the target routine
-     unsigned int targetDriverRoutineAddress;
+     unsigned int target_driver_routine_address;
 
      // size of the code to replace target code
-     int patchSize;
+     int patch_size;
 
      // where we want to restore control to
-     int originalRoutineRestorePoint;
+     int original_routine_restore_point;
 
-     // parameters to patched function
-     DT_PARAMETER *parameters;
+     //
+     int *parameter_sizes;
 
-     // number of parameters
-     int parametersSize;
+     DT_ARGUMENTS arguments;
 
-     // simulated epilog of patched function
-     EPILOG epilog;
-};
+     // simulated prolog of patched function
+     void (*prolog)(void*);
+} DT_PATCH;
 
-static struct DT_PATCH *gDTPatches;
-static char gDevPath[5]  = "/dev/";
+static DT_PATCH *g_dt_patches;
+static char g_dev_path[5]  = "/dev/";
 
-static void dt_detour_patching_remove_patch(struct DT_PATCH *patch)
+static void dt_detour_patching_remove_patch(DT_PATCH *patch)
 {
-    struct DT_PATCH *cursor;
+    DT_PATCH *cursor;
 
     if (patch == NULL)
     {
@@ -64,15 +63,18 @@ static void dt_detour_patching_remove_patch(struct DT_PATCH *patch)
 
         if(cursor == patch)
         {
+            int i;
             if (cursor->patch != NULL)
             {
                 kfree(cursor->patch);
             }
 
-            if (cursor->replacedCode != NULL)
+            if (cursor->replaced_code != NULL)
             {
-                kfree(cursor->replacedCode);
+                kfree(cursor->replaced_code);
             }
+
+            for(i = 0; i < cursor->parameter_count)
 
             kfree(cursor);
             break;
@@ -81,7 +83,7 @@ static void dt_detour_patching_remove_patch(struct DT_PATCH *patch)
     return;
 }
 
-static void dt_detour_patching_append_patch(struct DT_PATCH **patch)
+static void dt_detour_patching_append_patch(DT_PATCH **patch)
 {
     if (patch == NULL)
     {
@@ -92,7 +94,7 @@ static void dt_detour_patching_append_patch(struct DT_PATCH **patch)
     if (*patch != NULL)
     {
         printk(KERN_NOTICE "%s(): patch needs to be removed and reallocated", __FUNCTION__);
-        dt_detour_patching_remove_patch(*pactch);
+        dt_detour_patching_remove_patch(*patch);
     }
 
     (*patch) = kmalloc(sizeof(**patch), GFP_KERNEL);
@@ -100,14 +102,14 @@ static void dt_detour_patching_append_patch(struct DT_PATCH **patch)
     if (*patch != NULL)
     {
         (*patch)->patch = kmalloc((*patch)->size, GFP_KERNEL);
-        (*patch)->replacedCode = kmalloc((*patch)->size, GFP_KERNEL);
-        (*patch)->next = gDTPatches;
+        (*patch)->replaced_code = kmalloc((*patch)->size, GFP_KERNEL);
+        (*patch)->next = g_dt_patches;
         gDTPatches = *patch;
     }
     return;
 }
 
-static inline int is_driver_loaded(char *path, char *targetDriver)
+static inline int is_driver_loaded(char *path, char *target_driver)
 {
     /*char[256] targetDriverPath;
     struct stat st;
@@ -132,35 +134,50 @@ static inline int is_driver_loaded(char *path, char *targetDriver)
 __declspec(naked) void dt_detour_patching_prolog_detour()
 {
     int i;
-    stuct DT_PATCH *patch;
+    stuct DT_PATCH *patch = g_dt_patches;
+    DT_PROLOG *prolog = NULL;
+
+    int address;
+
+    // get patch
+    for(i = 0; patch != NULL; patch = patch->next)
+    {
+       if (patch->target_driver_routine_address == address)
+       {
+            *prolog = patch->prolog;
+            break;
+       }
+    }
+
+    // collect arguments to parameters
+    prolog(&patch);
 
     // jump to patch
-    __asm__
+    /*__asm__
     (
        "call %0"
        : "r" (patch->userlandRoutineAddress)
-    );
+    );*/
+    ((USERLAND_CALL)patch->userland_routine_address)(patch->arguments);
 
     // jump to original code
     __asm__
     (
          "push %0\n\t"
          "ret"
-         : "r" (patch->originalRoutineRestorePoint)
+         : "r" (patch->original_routine_restore_point)
     );
-
-    return;
 }
 
-static inline int is_valid_patch_request(struct DT_PATCH *patch, DT_PATCH_REQUEST *patchRequest)
+static inline int is_valid_patch_request(DT_PATCH *patch, DT_PATCH_REQUEST *patch_request)
 {
-    if(patch == NULL || patch->patch == NULL || patch->removedCode)
+    if(patch == NULL || patch->patch == NULL || patch->removed_code)
     {
         printk(KERN_WARNING "%s(): allocation failed", __FUNCTION__);
         return 0;
     }
 
-    if (patchRequest == NULL)
+    if (patch_request == NULL)
     {
         printk(KERN_WARNING "%s(): patchRequest is null", __FUNCTION__);
         return 0;
@@ -169,90 +186,89 @@ static inline int is_valid_patch_request(struct DT_PATCH *patch, DT_PATCH_REQUES
     return 1;
 }
 
-static EPILOG *dt_detour_get_epilog(DECL_SPEC declSpec)
+static DT_PROLOG *dt_detour_get_prolog(DT_DECL_SPEC decl_spec)
 {
-    switch(declSpec)
+    switch(decl_spec)
     {
-        case CDECL:
-            return &dt_cdecl_patch_epilog;
+        case DECL_SPEC_CDECL:
+            return &dt_cdecl_patch_prolog;
         default:
             return NULL;
     }
 }
 
-static int dt_detour_patching_apply_patch(unsigned long targetDriverRoutineAddress,
-                                          DT_PATCH_REQUEST *patchRequest)
+static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_address,
+                                          DT_PATCH_REQUEST *patch_request)
 {
     int i;
-    char trampolineBytes[TRAMPOLINE_SIZE] = {0x68, 0x00, 0x00, 0x00, 0x00, 0xC3};
-    struct DT_PATCH *patch;
-    char *targetDriverRoutineAddressAsBytes;
-    char *userlandRoutineAddressAsBytes;
-    EPILOG *epilog;
+    char trampoline_bytes[TRAMPOLINE_SIZE] = {0x68, 0x00, 0x00, 0x00, 0x00, 0xC3}; // push <addr>; ret;
+    DT_PATCH *patch;
+    char *target_driver_routine_address_as_bytes;
+    char *detour_as_bytes;
+    DT_PROLOG *prolog;
 
-    if(!is_valid_patch_request(patch, patchRequest))
+    if(!is_valid_patch_request(patch, patch_request))
     {
         printk(KERN_WARNING "%s(): need to remove patch", __FUNCTION__);
-        return -ENOTTY;
+        return ENOTTY;
     }
 
-    epilog = dt_detour_get_epilog(patchRequest->declSpec);
-    if (epilog == NULL)
+    prolog = dt_detour_get_prolog(patch_request->decl_spec);
+    if (prolog == NULL)
     {
-        // we need to remove the
-        return -ENOTTY;
+        return ENOTTY;
     }
 
-    targetDriverRoutineAddressAsBytes = ((char *)targetDriverRoutineAddress) + patchRequest->targetDriverRoutineOffset;
-    userlandRoutineAddressAsBytes = (char *)patchRequest->userlandRoutineAddress;
+    target_driver_routine_address_as_bytes = ((char *)target_driver_routine_address) + patch_request->target_driver_routine_offset;
+    detour_as_bytes = (char *)dt_detour_patching_prolog_detour;
     dt_detour_patching_append_patch(&patch);
 
-    patch->patchSize = patchRequest->bytesRequired;
-    patch->targetDriverRoutineAddress = targetDriverRoutineAddress;
-    patch->epilog = *epilog;
+    patch->patch_size = patch_request->bytes_required;
+    patch->target_driver_routine_address = target_driver_routine_address;
+    patch->prolog = *prolog;
 
-    for(i = 0; i < patch->patchSize; ++i)
+    for(i = 0; i < patch->patch_size ; ++i)
     {
         // save the original code so we can unapply the patch
-        patch->replacedCode[i] = targetDriverRoutineAddressAsBytes[i];
+        patch->replaced_code[i] = target_driver_routine_address_as_bytes[i];
         if (i >= TRAMPOLINE_SIZE) // copy noop to pad patch to align with instructions
         {
             patch->patch[i] = 0x90;
         }
-        else if (i >= 1 && i <= 4) // write out address of routine we are provided
+        else if (i >= 1 && i <= 4) // write out address of our detour
         {
-           patch->patch[i] = userlandRoutineAddressAsBytes[i];
+           patch->patch[i] = detour_as_bytes[i];
         }
         else // copy bytes as they appear in original trampoline
         {
-            patch->patch[i] = trampolineBytes[i];
+            patch->patch[i] = trampoline_bytes[i];
         }
         // patch target routine
-        targetDriverRoutineAddressAsBytes[i] = patch->patch[i];
+        target_driver_routine_address_as_bytes[i] = patch->patch[i];
     }
     return 0;
 }
 
-static int dt_detour_patching_unapply_patch(struct DT_PATCH *patch)
+static int dt_detour_patching_unapply_patch(DT_PATCH *patch)
 {
     int i;
-    char * addressAsBytes;
+    char * address_as_bytes;
 
     if (patch == NULL)
     {
-        return -ENOTTY;
+        return ENOTTY;
     }
 
-    addressAsBytes = (char *)patch->targetDriverRoutineAddress;
-    for(i = 0; i < patch->patchSize; ++i)
+    address_as_bytes = (char *)patch->target_driver_routine_address;
+    for(i = 0; i < patch->patch_size; ++i)
     {
-        addressAsBytes[i] = patch->replacedCode[i];
+        address_as_bytes[i] = patch->replaced_code[i];
     }
     return 0;
 }
 
 static inline int is_valid_patch_request(char *path,
-                                         DT_PATCH_REQUEST *patchRequest)
+                                         DT_PATCH_REQUEST *patch_request)
 {
     if (patch == NULL)
     {
@@ -260,19 +276,19 @@ static inline int is_valid_patch_request(char *path,
         return 0;
     }
 
-    if (patchRequest == NULL)
+    if (patch_request == NULL)
     {
         printk(KERN_WARNING "%s(): patchRequest is null", __FUNCTION__);
         return 0;
     }
 
-    if (patchRequest->targetDriverName == NULL)
+    if (patch_request->target_driver_name == NULL)
     {
         printk(KERN_WARNING "%s(): targetDriverName is null", __FUNCTION__);
         return 0;
     }
 
-    if (patchRequest->targetRoutineName == NULL)
+    if (patch_request->target_routine_name == NULL)
     {
         printk(KERN_WARNING "%s(): targetRoutineName is null", __FUNCTION__);
         return 0;
@@ -282,52 +298,52 @@ static inline int is_valid_patch_request(char *path,
 }
 
 static int dt_detour_patching_patch_inner(char *path,
-                                          DT_PATCH_REQUEST *patchRequest)
+                                          DT_PATCH_REQUEST *patch_request)
 
 {
-    unsigned long targetDriverRoutineAddress;
+    unsigned long target_driver_routine_address;
 
-    if (!is_valid_patch_request(patch, patchRequest))
+    if (!is_valid_patch_request(patch, patch_request))
     {
         return EINVAL;
     }
 
-    if (!is_driver_loaded(path, patchRequest->targetDriverName))
+    if (!is_driver_loaded(path, patch_request->target_driver_name))
     {
         printk(KERN_WARNING "%s(): driver is not loaded", __FUNCTION__);
         return EINVAL;
     }
 
-    targetDriverRoutineAddress = kallsyms_lookup_name(patchRequest->targetRoutineName);
-    if (targetDriverRoutineAddress == 0)
+    target_driver_routine_address = kallsyms_lookup_name(patch_request->target_routine_name);
+    if (target_driver_routine_address == 0)
     {
-        printk(KERN_WARNING "%s(): could not find target routine %s", __FUNCTION__, patchRequest->targetRoutineName);
+        printk(KERN_WARNING "%s(): could not find target routine %s", __FUNCTION__, patch_request->target_routine_name);
         return EINVAL;
     }
 
-    return dt_detour_patching_apply_patch(targetDriverRoutineAddress, patchRequest);
+    return dt_detour_patching_apply_patch(target_driver_routine_address, patch_request);
 }
 
 void dt_detour_patching_init(void)
 {
-    gDTPatches = NULL;
+    g_dt_patches = NULL;
     return;
 }
 
 void dt_detour_patching_exit(void)
 {
-    struct DT_PATCH *cursor = gDTPatches;
+    struct DT_PATCH *cursor = g_dt_patches;
     while (cursor != NULL)
     {
-        struct DT_PATCH *toUnapply = cursor;
+        struct DT_PATCH *to_unapply = cursor;
         cursor = cursor->next;
-        dt_detour_patching_unapply_patch(toUnapply);
-        dt_detour_patching_remove_patch(toUnapply);
+        dt_detour_patching_unapply_patch(to_unapply);
+        dt_detour_patching_remove_patch(to_unapply);
     }
     return;
 }
 
-int dt_detour_patching_patch(DT_PATCH_REQUEST *patchRequest)
+int dt_detour_patching_patch(DT_PATCH_REQUEST *patch_request)
 {
-    return dt_detour_patching_patch_inner(gDevPath, patchRequest);
+    return dt_detour_patching_patch_inner(g_dev_path, patch_request);
 }
