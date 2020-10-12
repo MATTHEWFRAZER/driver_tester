@@ -72,9 +72,9 @@ static void dt_detour_patching_remove_patch(DT_PATCH *patch)
                 kfree(cursor->replaced_code);
             }
 
-            for(i = 0; i < (cursor->arguments)->parameterCount; ++i)
+            for(i = 0; i < (cursor->arguments).parameterCount; ++i)
             {
-                kfree((cursor->arguments)->arguments[i].data);
+                kfree((cursor->arguments).arguments[i].data);
             }
 
             kfree(cursor);
