@@ -11,7 +11,7 @@
 
 //typedef void (*DT_PROLOG)(DT_PATCH *patch);
 
-typedef struct _DT_PATCH
+struct _DT_PATCH
 {
      // next link in the linked list
      struct _DT_PATCH *next;
@@ -36,12 +36,12 @@ typedef struct _DT_PATCH
      // simulated prolog of patched function
      //DT_PROLOG prolog;
      void (*prolog)(struct _DT_PATCH *patch);
-} DT_PATCH;
+};
 
-static DT_PATCH *g_dt_patches;
+static struct _DT_PATCH *g_dt_patches;
 static char g_dev_path[5]  = "/dev/";
 
-static void dt_detour_patching_remove_patch(DT_PATCH *patch)
+static void dt_detour_patching_remove_patch(struct _DT_PATCH *patch)
 {
     struct _DT_PATCH *cursor;
 
@@ -84,7 +84,7 @@ static void dt_detour_patching_remove_patch(DT_PATCH *patch)
     return;
 }
 
-static void dt_detour_patching_append_patch(DT_PATCH **patch)
+static void dt_detour_patching_append_patch(struct _DT_PATCH **patch)
 {
     if (patch == NULL)
     {
@@ -131,7 +131,7 @@ static inline int is_driver_loaded(char *path, char *target_driver)
 }
 
 #define TRAMPOLINE_SIZE 6
-typedef void (*DT_PROLOG)(DT_PATCH *patch);
+typedef void (*DT_PROLOG)(struct _DT_PATCH *patch);
 
 void dt_detour_patching_prolog_detour(void) __attribute__((naked));
 
@@ -173,7 +173,7 @@ void dt_detour_patching_prolog_detour(void)
     );
 }
 
-static inline int is_valid_patch(DT_PATCH *patch, DT_PATCH_REQUEST *patch_request)
+static inline int is_valid_patch(struct _DT_PATCH *patch, DT_PATCH_REQUEST *patch_request)
 {
     if(patch == NULL || patch->patch == NULL || patch->removed_code)
     {
@@ -253,7 +253,7 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
     return 0;
 }
 
-static int dt_detour_patching_unapply_patch(DT_PATCH *patch)
+static int dt_detour_patching_unapply_patch(struct _DT_PATCH *patch)
 {
     int i;
     char * address_as_bytes;
