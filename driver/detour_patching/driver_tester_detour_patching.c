@@ -139,7 +139,7 @@ void dt_detour_patching_prolog_detour(void)
 {
     int i;
     struct _DT_PATCH *patch = g_dt_patches;
-    DT_PROLOG prolog = NULL;
+    DT_PROLOG *prolog = NULL;
 
     int address;
 
