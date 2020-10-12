@@ -154,7 +154,7 @@ void dt_detour_patching_prolog_detour(void)
     }
 
     // collect arguments to parameters
-    prolog(&patch);
+    prolog(patch);
 
     // jump to patch
     /*__asm__
@@ -175,7 +175,7 @@ void dt_detour_patching_prolog_detour(void)
 
 static inline int is_valid_patch(struct _DT_PATCH *patch, DT_PATCH_REQUEST *patch_request)
 {
-    if(patch == NULL || patch->patch == NULL || patch->removed_code)
+    if(patch == NULL || patch->patch == NULL || patch->replaced_code)
     {
         printk(KERN_WARNING "%s(): allocation failed", __FUNCTION__);
         return 0;
