@@ -138,7 +138,7 @@ void dt_detour_patching_prolog_detour(void) __attribute__((naked));
 void dt_detour_patching_prolog_detour(void)
 {
     int i;
-    stuct DT_PATCH *patch = g_dt_patches;
+    struct _DT_PATCH *patch = g_dt_patches;
     DT_PROLOG prolog = NULL;
 
     int address;
