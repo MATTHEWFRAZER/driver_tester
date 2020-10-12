@@ -14,7 +14,7 @@
 typedef struct _DT_PATCH
 {
      // next link in the linked list
-     struct DT_PATCH *next;
+     struct _DT_PATCH *next;
 
      // actual code to replace target code
      char *patch;
@@ -43,7 +43,7 @@ static char g_dev_path[5]  = "/dev/";
 
 static void dt_detour_patching_remove_patch(DT_PATCH *patch)
 {
-    DT_PATCH *cursor;
+    struct _DT_PATCH *cursor;
 
     if (patch == NULL)
     {
