@@ -25,6 +25,9 @@ struct _DT_PATCH
      // address of the target routine
      unsigned int target_driver_routine_address;
 
+     // address of the userland routine
+     unsigned int userland_routine_address;
+
      // size of the code to replace target code
      int patch_size;
 
@@ -225,6 +228,7 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
 
     patch->patch_size = patch_request->bytes_required;
     patch->target_driver_routine_address = target_driver_routine_address;
+    patch->userland_routine_address = patch_request->userland_routine_address;
     patch->prolog = *prolog;
 
     if(!is_valid_patch(patch, patch_request))
