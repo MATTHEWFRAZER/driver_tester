@@ -206,7 +206,7 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
 {
     int i;
     char trampoline_bytes[TRAMPOLINE_SIZE] = {0x68, 0x00, 0x00, 0x00, 0x00, 0xC3}; // push <addr>; ret;
-    DT_PATCH *patch;
+    struct _DT_PATCH *patch;
     char *target_driver_routine_address_as_bytes;
     char *detour_as_bytes;
     DT_PROLOG *prolog;
@@ -336,10 +336,10 @@ void dt_detour_patching_init(void)
 
 void dt_detour_patching_exit(void)
 {
-    struct DT_PATCH *cursor = g_dt_patches;
+    struct _DT_PATCH *cursor = g_dt_patches;
     while (cursor != NULL)
     {
-        struct DT_PATCH *to_unapply = cursor;
+        struct _DT_PATCH *to_unapply = cursor;
         cursor = cursor->next;
         dt_detour_patching_unapply_patch(to_unapply);
         dt_detour_patching_remove_patch(to_unapply);
