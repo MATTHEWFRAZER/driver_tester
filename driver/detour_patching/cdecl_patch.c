@@ -2,7 +2,7 @@
 #include "../../common/common.h"
 
 // take arguments off the stack, we want our patch code to not directly pull arguments off the stack
-void dt_cdecl_patch_prolog(void *context)
+void dt_cdecl_patch_prolog(void *context) //__attribute__((naked))
 {
     int i;
     DT_PATCH *patch = (DT_PATCH*)context;
