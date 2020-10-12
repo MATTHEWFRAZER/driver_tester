@@ -135,7 +135,7 @@ typedef void (*DT_PROLOG)(DT_PATCH *patch);
 
 __attribute__((naked)) void dt_detour_patching_prolog_detour();
 
-__attribute__((naked)) void dt_detour_patching_prolog_detour()
+void dt_detour_patching_prolog_detour()
 {
     int i;
     stuct DT_PATCH *patch = g_dt_patches;
