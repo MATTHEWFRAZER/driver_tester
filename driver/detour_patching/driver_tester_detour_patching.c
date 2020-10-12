@@ -72,7 +72,7 @@ static void dt_detour_patching_remove_patch(DT_PATCH *patch)
                 kfree(cursor->replaced_code);
             }
 
-            for(i = 0; i < (cursor->arguments).parameterCount; ++i)
+            for(i = 0; i < (cursor->arguments).parameter_count; ++i)
             {
                 kfree((cursor->arguments).arguments[i].data);
             }
@@ -102,8 +102,8 @@ static void dt_detour_patching_append_patch(DT_PATCH **patch)
 
     if (*patch != NULL)
     {
-        (*patch)->patch         = kmalloc((*patch)->size, GFP_KERNEL);
-        (*patch)->replaced_code = kmalloc((*patch)->size, GFP_KERNEL);
+        (*patch)->patch         = kmalloc((*patch)->patch_size, GFP_KERNEL);
+        (*patch)->replaced_code = kmalloc((*patch)->patch_size, GFP_KERNEL);
         (*patch)->next          = g_dt_patches;
         gDTPatches              = *patch;
     }
