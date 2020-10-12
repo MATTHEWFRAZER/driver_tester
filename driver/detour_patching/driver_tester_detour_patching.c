@@ -173,7 +173,7 @@ void dt_detour_patching_prolog_detour(void)
     );
 }
 
-static inline int is_valid_patch_request(DT_PATCH *patch, DT_PATCH_REQUEST *patch_request)
+static inline int is_valid_patch(DT_PATCH *patch, DT_PATCH_REQUEST *patch_request)
 {
     if(patch == NULL || patch->patch == NULL || patch->removed_code)
     {
@@ -211,12 +211,6 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
     char *detour_as_bytes;
     DT_PROLOG *prolog;
 
-    if(!is_valid_patch_request(patch, patch_request))
-    {
-        printk(KERN_WARNING "%s(): need to remove patch", __FUNCTION__);
-        return ENOTTY;
-    }
-
     prolog = dt_detour_get_prolog(patch_request->decl_spec);
     if (prolog == NULL)
     {
@@ -230,6 +224,12 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
     patch->patch_size = patch_request->bytes_required;
     patch->target_driver_routine_address = target_driver_routine_address;
     patch->prolog = *prolog;
+
+    if(!is_valid_patch(patch, patch_request))
+    {
+        printk(KERN_WARNING "%s(): need to remove patch", __FUNCTION__);
+        return ENOTTY;
+    }
 
     for(i = 0; i < patch->patch_size ; ++i)
     {
@@ -274,7 +274,7 @@ static int dt_detour_patching_unapply_patch(DT_PATCH *patch)
 static inline int is_valid_patch_request(char *path,
                                          DT_PATCH_REQUEST *patch_request)
 {
-    if (patch == NULL)
+    if (path == NULL)
     {
         printk(KERN_WARNING "%s(): patch is null", __FUNCTION__);
         return 0;
@@ -307,7 +307,7 @@ static int dt_detour_patching_patch_inner(char *path,
 {
     unsigned long target_driver_routine_address;
 
-    if (!is_valid_patch_request(patch, patch_request))
+    if (!is_valid_patch_request(path, patch_request))
     {
         return EINVAL;
     }
