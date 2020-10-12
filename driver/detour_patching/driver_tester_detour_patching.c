@@ -9,12 +9,14 @@
 #include "driver_tester_detour_patching.h"
 #include "cdecl_patch.h"
 
-//typedef void (*DT_PROLOG)(DT_PATCH *patch);
+extern struct DT_PATCH;
+
+typedef void (*DT_PROLOG)(DT_PATCH *patch);
 
 typedef struct _DT_PATCH
 {
      // next link in the linked list
-     struct _DT_PATCH *next;
+     struct DT_PATCH *next;
 
      // actual code to replace target code
      char *patch;
@@ -31,13 +33,10 @@ typedef struct _DT_PATCH
      // where we want to restore control to
      int original_routine_restore_point;
 
-     //
-     int *parameter_sizes;
-
      DT_ARGUMENTS arguments;
 
      // simulated prolog of patched function
-     void (*prolog)(void*);
+     DT_PROLOG prolog;
 } DT_PATCH;
 
 static DT_PATCH *g_dt_patches;
@@ -74,7 +73,10 @@ static void dt_detour_patching_remove_patch(DT_PATCH *patch)
                 kfree(cursor->replaced_code);
             }
 
-            for(i = 0; i < cursor->parameter_count)
+            for(i = 0; i < cursor->arguments->parameterCount; ++i)
+            {
+                kfree(cursor->arguments->arguments[i].data);
+            }
 
             kfree(cursor);
             break;
@@ -101,10 +103,10 @@ static void dt_detour_patching_append_patch(DT_PATCH **patch)
 
     if (*patch != NULL)
     {
-        (*patch)->patch = kmalloc((*patch)->size, GFP_KERNEL);
+        (*patch)->patch         = kmalloc((*patch)->size, GFP_KERNEL);
         (*patch)->replaced_code = kmalloc((*patch)->size, GFP_KERNEL);
-        (*patch)->next = g_dt_patches;
-        gDTPatches = *patch;
+        (*patch)->next          = g_dt_patches;
+        gDTPatches              = *patch;
     }
     return;
 }
