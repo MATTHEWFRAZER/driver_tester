@@ -139,7 +139,7 @@ void dt_detour_patching_prolog_detour(void)
 {
     int i;
     struct _DT_PATCH *patch = g_dt_patches;
-    DT_PROLOG *prolog = NULL;
+    DT_PROLOG prolog;
 
     int address;
 
@@ -148,13 +148,15 @@ void dt_detour_patching_prolog_detour(void)
     {
        if (patch->target_driver_routine_address == address)
        {
-            *prolog = patch->prolog;
+            prolog = patch->prolog;
             break;
        }
     }
 
-    // collect arguments to parameters
-    prolog(patch);
+    if(prolog != NULL)
+    {
+        prolog(patch);
+    }
 
     // jump to patch
     /*__asm__
@@ -190,12 +192,12 @@ static inline int is_valid_patch(struct _DT_PATCH *patch, DT_PATCH_REQUEST *patc
     return 1;
 }
 
-static DT_PROLOG *dt_detour_get_prolog(DT_DECL_SPEC decl_spec)
+static DT_PROLOG dt_detour_get_prolog(DT_DECL_SPEC decl_spec)
 {
     switch(decl_spec)
     {
         case DECL_SPEC_CDECL:
-            return &dt_cdecl_patch_prolog;
+            return dt_cdecl_patch_prolog;
         default:
             return NULL;
     }
