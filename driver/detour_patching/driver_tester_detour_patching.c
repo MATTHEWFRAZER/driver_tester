@@ -105,7 +105,7 @@ static void dt_detour_patching_append_patch(DT_PATCH **patch)
         (*patch)->patch         = kmalloc((*patch)->patch_size, GFP_KERNEL);
         (*patch)->replaced_code = kmalloc((*patch)->patch_size, GFP_KERNEL);
         (*patch)->next          = g_dt_patches;
-        gDTPatches              = *patch;
+        g_dt_patches            = *patch;
     }
     return;
 }
