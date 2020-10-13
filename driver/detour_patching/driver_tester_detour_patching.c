@@ -143,6 +143,7 @@ void dt_detour_patching_prolog_detour(void)
     int i;
     struct _DT_PATCH *patch = g_dt_patches;
     DT_PROLOG prolog;
+    USERLAND_CALL userland_call;
 
     int address;
 
@@ -167,7 +168,8 @@ void dt_detour_patching_prolog_detour(void)
        "call %0"
        : "r" (patch->userlandRoutineAddress)
     );*/
-    ((USERLAND_CALL)patch->userland_routine_address)(patch->arguments);
+    userland_call = patch->userland_routine_address;
+    userland_call(patch->arguments);
 
     // jump to original code
     __asm__
