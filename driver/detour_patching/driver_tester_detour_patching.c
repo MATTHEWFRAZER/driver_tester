@@ -9,7 +9,7 @@
 #include "driver_tester_detour_patching.h"
 #include "cdecl_patch.h"
 
-//typedef void (*DT_PROLOG)(DT_PATCH *patch);
+typedef void (*DT_PROLOG)(void *context);
 
 struct _DT_PATCH
 {
@@ -37,8 +37,7 @@ struct _DT_PATCH
      DT_ARGUMENTS arguments;
 
      // simulated prolog of patched function
-     //DT_PROLOG prolog;
-     void (*prolog)(struct _DT_PATCH *patch);
+     DT_PROLOG prolog;
 };
 
 static struct _DT_PATCH *g_dt_patches;
@@ -134,7 +133,6 @@ static inline int is_driver_loaded(char *path, char *target_driver)
 }
 
 #define TRAMPOLINE_SIZE 6
-typedef void (*DT_PROLOG)(struct _DT_PATCH *patch);
 
 void dt_detour_patching_prolog_detour(void) __attribute__((naked));
 
