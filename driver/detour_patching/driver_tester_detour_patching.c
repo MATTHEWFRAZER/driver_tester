@@ -144,6 +144,7 @@ void dt_detour_patching_prolog_detour(void)
     struct _DT_PATCH *patch = g_dt_patches;
     DT_PROLOG prolog;
     USERLAND_CALL userland_call;
+    void *out;
 
     int address;
 
@@ -169,7 +170,14 @@ void dt_detour_patching_prolog_detour(void)
        : "r" (patch->userlandRoutineAddress)
     );*/
     userland_call = patch->userland_routine_address;
-    userland_call(patch->arguments);
+    out = kmalloc(arguments.out_size, GFP_KERNEL);
+
+    if (out == NULL)
+    {
+        return ENOMEM;
+    }
+
+    userland_call(patch->arguments, out);
 
     // jump to original code
     __asm__
