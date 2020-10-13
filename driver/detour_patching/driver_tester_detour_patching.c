@@ -170,7 +170,7 @@ void dt_detour_patching_prolog_detour(void)
        : "r" (patch->userlandRoutineAddress)
     );*/
     userland_call = patch->userland_routine_address;
-    out = kmalloc(arguments.out_size, GFP_KERNEL);
+    out = kmalloc(patch->arguments.out_size, GFP_KERNEL);
 
     if (out == NULL)
     {

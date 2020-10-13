@@ -11,6 +11,9 @@ typedef struct _DT_ARGUMENT
 
 typedef struct _DT_ARGUMENTS
 {
+    // output size
+    int out_size;
+
     // number of parameters
     int parameter_count;
 
