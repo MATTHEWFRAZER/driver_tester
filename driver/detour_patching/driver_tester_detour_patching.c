@@ -174,7 +174,7 @@ void dt_detour_patching_prolog_detour(void)
 
     if (out == NULL)
     {
-        return ENOMEM;
+        return;//return ENOMEM;
     }
 
     userland_call(patch->arguments, out);
