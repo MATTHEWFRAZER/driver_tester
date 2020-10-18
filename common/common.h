@@ -26,4 +26,4 @@ typedef enum _DT_DECL_SPEC
    DECL_SPEC_CDECL = 0,
 } DT_DECL_SPEC;
 
-typedef void USERLAND_CALL(DT_ARGUMENTS arguments, void *out);
+typedef void (USERLAND_CALL*)(DT_ARGUMENTS arguments, void *out);
