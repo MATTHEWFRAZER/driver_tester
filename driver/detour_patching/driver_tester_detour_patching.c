@@ -179,7 +179,7 @@ void dt_detour_patching_prolog_detour(void)
     // jump to original code
     __asm__
     (
-         "push %0\n\t"
+         "pushq %0\n\t"
          "ret"
          : :"r" (patch->original_routine_restore_point)
     );
