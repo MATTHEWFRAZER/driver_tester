@@ -181,7 +181,7 @@ void dt_detour_patching_prolog_detour(void)
     (
          "push %0\n\t"
          "ret"
-         : "r" (patch->original_routine_restore_point)
+         : :"r" (patch->original_routine_restore_point)
     );
 }
 
