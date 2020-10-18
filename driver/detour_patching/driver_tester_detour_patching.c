@@ -167,9 +167,8 @@ void dt_detour_patching_prolog_detour(void)
        "call %0"
        : "r" (patch->userlandRoutineAddress)
     );*/
-    userland_call = (unsigned long)patch->userland_routine_address;
+    userland_call = patch->userland_routine_address;
     out = kmalloc(patch->arguments.out_size, GFP_KERNEL);
-
     if (out == NULL)
     {
         return;//return ENOMEM;
@@ -222,7 +221,7 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
     struct _DT_PATCH *patch;
     char *target_driver_routine_address_as_bytes;
     char *detour_as_bytes;
-    DT_PROLOG *prolog;
+    DT_PROLOG prolog;
 
     prolog = dt_detour_get_prolog(patch_request->decl_spec);
     if (prolog == NULL)
