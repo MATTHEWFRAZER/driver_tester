@@ -23,16 +23,16 @@ struct _DT_PATCH
      char *replaced_code;
 
      // address of the target routine
-     unsigned int target_driver_routine_address;
+     unsigned long target_driver_routine_address;
 
      // address of the userland routine
-     unsigned int userland_routine_address;
+     unsigned long userland_routine_address;
 
      // size of the code to replace target code
      int patch_size;
 
      // where we want to restore control to
-     int original_routine_restore_point;
+     unsigned long original_routine_restore_point;
 
      DT_ARGUMENTS arguments;
 
@@ -179,7 +179,7 @@ void dt_detour_patching_prolog_detour(void)
     // jump to original code
     __asm__
     (
-         "pushq %0\n\t"
+         "push %0\n\t"
          "ret"
          : :"r" (patch->original_routine_restore_point)
     );
