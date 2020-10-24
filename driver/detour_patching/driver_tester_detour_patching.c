@@ -226,7 +226,7 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
     prolog = dt_detour_get_prolog(patch_request->decl_spec);
     if (prolog == NULL)
     {
-        return ENOTTY;
+        return -ENOTTY;
     }
 
     target_driver_routine_address_as_bytes = ((char *)target_driver_routine_address) + patch_request->target_driver_routine_offset;
@@ -241,7 +241,7 @@ static int dt_detour_patching_apply_patch(unsigned long target_driver_routine_ad
     if(!is_valid_patch(patch, patch_request))
     {
         printk(KERN_WARNING "%s(): need to remove patch", __FUNCTION__);
-        return ENOTTY;
+        return -ENOTTY;
     }
 
     for(i = 0; i < patch->patch_size ; ++i)
@@ -273,7 +273,7 @@ static int dt_detour_patching_unapply_patch(struct _DT_PATCH *patch)
 
     if (patch == NULL)
     {
-        return ENOTTY;
+        return -ENOTTY;
     }
 
     address_as_bytes = (char *)patch->target_driver_routine_address;
@@ -322,20 +322,20 @@ static int dt_detour_patching_patch_inner(char *path,
 
     if (!is_valid_patch_request(path, patch_request))
     {
-        return EINVAL;
+        return -EINVAL;
     }
 
     if (!is_driver_loaded(path, patch_request->target_driver_name))
     {
         printk(KERN_WARNING "%s(): driver is not loaded", __FUNCTION__);
-        return EINVAL;
+        return -EINVAL;
     }
 
     target_driver_routine_address = kallsyms_lookup_name(patch_request->target_routine_name);
     if (target_driver_routine_address == 0)
     {
         printk(KERN_WARNING "%s(): could not find target routine %s", __FUNCTION__, patch_request->target_routine_name);
-        return EINVAL;
+        return -EINVAL;
     }
 
     return dt_detour_patching_apply_patch(target_driver_routine_address, patch_request);
