@@ -5,7 +5,7 @@
 #include "../detour_patching/driver_tester_detour_patching.h"
 #include "../../common/driver_tester_ioctl.h"
 
-long int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument)
+int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument)
 {
     if(_IOC_TYPE(ioctl) != DT_IOC_MAGIC)
     {

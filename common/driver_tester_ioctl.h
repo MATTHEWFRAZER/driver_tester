@@ -5,4 +5,4 @@
 
 #define DT_PATCH_IOCTL _IOW(DT_IOC_MAGIC, 1, char*)
 
-long int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument);
+int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument);
