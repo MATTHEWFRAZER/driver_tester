@@ -9,12 +9,12 @@ int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long 
 {
     if(_IOC_TYPE(ioctl) != DT_IOC_MAGIC)
     {
-        return -ENOTTY;
+        return ENOTTY;
     }
 
     if(_IOC_NR(ioctl) > DT_IOC_MAXNR)
     {
-        return -ENOTTY;
+        return ENOTTY;
     }
 
     if (_IOC_NR(ioctl) == DT_PATCH_IOCTL && _IOC_DIR(ioctl) & _IOC_WRITE)
@@ -28,7 +28,7 @@ int dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long 
 
         if(!dt_detour_patching_patch((DT_PATCH_REQUEST *)argument))
         {
-            return -ENOTTY;
+            return ENOTTY;
         }
     }
     return 0;
