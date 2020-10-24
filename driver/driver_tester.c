@@ -11,6 +11,8 @@ MODULE_DESCRIPTION("driver used to test other drivers");
 MODULE_LICENSE("MIT");
 MODULE_AUTHOR("Matthew Frazer");
 
+extern long dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument);
+
 static const struct file_operations g_driver_tester_file_operations =
 {
     .owner = THIS_MODULE,
