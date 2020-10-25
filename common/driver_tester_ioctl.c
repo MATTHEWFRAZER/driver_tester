@@ -2,7 +2,7 @@
 #include <linux/errno.h>
 //#include <asm/uaccess.h>
 
-#include "../detour_patching/driver_tester_detour_patching.h"
+#include "../driver/detour_patching/driver_tester_detour_patching.h"
 #include "driver_tester_ioctl.h"
 
 long dt_ioctl_handle_ioctl(struct file *pfile, unsigned int ioctl, unsigned long argument)
